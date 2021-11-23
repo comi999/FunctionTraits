@@ -1,157 +1,184 @@
+#pragma once
 #include <tuple>
+
 using namespace std;
 
 namespace FunctionTraits
 {
-	template < typename T >
-	struct FunctionInfo;
-
-	template < typename R, typename... A >
-	struct FunctionInfo< R( A... ) >
+	namespace // Private
 	{
-		using Signature = R( A... );
-		using Return = R;
-		using Arguments = tuple< A... >;
-		static constexpr bool IsStatic = true;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = false;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
+		template < typename T >
+		struct InfoImpl;
 
-	template < typename O, typename R, typename... A >
-	struct FunctionInfo< R( O::* )( A... ) >
-		: FunctionInfo< R( A... ) >
-	{
-		static constexpr bool IsStatic = false;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = true;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
+		template < typename R, typename... A >
+		struct InfoImpl< R( A... ) >
+		{
+			using Signature = R( A... );
+			using Return    = R;
+			using Arguments = tuple< A... >;
+			static constexpr bool IsStatic   = true;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = false;
+			static constexpr bool IsFunction = true;
+		};
 
-	template < typename O, typename R, typename... A >
-	struct FunctionInfo< R( O::* )( A... ) const >
-		: FunctionInfo< R( A... ) >
-	{
-		static constexpr bool IsStatic = false;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = true;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
+		template < typename O, typename R, typename... A >
+		struct InfoImpl< R( O::* )( A... ) >
+		{
+			using Signature = R( A... );
+			using Return    = R;
+			using Arguments = tuple< A... >;
+			static constexpr bool IsStatic   = false;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = true;
+			static constexpr bool IsFunction = true;
+		};
 
-	template < typename O, typename R, typename... A >
-	struct FunctionInfo< R( O::* )( A... ) volatile >
-		: FunctionInfo< R( A... ) >
-	{
-		static constexpr bool IsStatic = false;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = true;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
+		template < typename O, typename R, typename... A >
+		struct InfoImpl< R( O::* )( A... ) const >
+		{
+			using Signature = R( A... );
+			using Return    = R;
+			using Arguments = tuple< A... >;
+			static constexpr bool IsStatic   = false;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = true;
+			static constexpr bool IsFunction = true;
+		};
 
-	template < typename O, typename R, typename... A >
-	struct FunctionInfo< R( O::* )( A... ) const volatile >
-		: FunctionInfo< R( A... ) >
-	{
-		static constexpr bool IsStatic = false;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = true;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
+		template < typename O, typename R, typename... A >
+		struct InfoImpl< R( O::* )( A... ) volatile >
+		{
+			using Signature = R( A... );
+			using Return = R;
+			using Arguments = tuple< A... >;
+			static constexpr bool IsStatic   = false;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = true;
+			static constexpr bool IsFunction = true;
+		};
 
-	template < typename R, typename... A >
-	struct FunctionInfo< R( * )( A... ) >
-		: FunctionInfo< R( A... ) >
-	{
-		static constexpr bool IsStatic = true;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = false;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
+		template < typename O, typename R, typename... A >
+		struct InfoImpl< R( O::* )( A... ) const volatile >
+		{
+			using Signature = R( A... );
+			using Return    = R;
+			using Arguments = tuple< A... >; 
+			static constexpr bool IsStatic   = false;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = true;
+			static constexpr bool IsFunction = true;
+		};
 
-	template < typename R, typename... A >
-	struct FunctionInfo< R( & )( A... ) >
-		: FunctionInfo< R( A... ) >
-	{
-		static constexpr bool IsStatic = true;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = false;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
+		template < typename R, typename... A >
+		struct InfoImpl< R( * )( A... ) >
+		{
+			using Signature = R( A... );
+			using Return    = R;
+			using Arguments = tuple< A... >;
+			static constexpr bool IsStatic   = true;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = false;
+			static constexpr bool IsFunction = true;
+		};
 
-	template < typename T >
-	struct FunctionInfo
-	{
-		template < typename U >
+		template < typename R, typename... A >
+		struct InfoImpl< R( & )( A... ) >
+		{
+			using Signature = R( A... );
+			using Return    = R;
+			using Arguments = tuple< A... >;
+			static constexpr bool IsStatic   = true;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = false;
+			static constexpr bool IsFunction = true;
+		};
+
+		template < typename T >
+		struct InfoImpl
+		{
+			using Signature = void;
+			using Return = void;
+			using Arguments = tuple<>;
+			static constexpr bool IsStatic   = false;
+			static constexpr bool IsLambda   = false;
+			static constexpr bool IsMember   = false;
+			static constexpr bool IsFunction = false;
+		};
+
+		template < typename T >
 		struct HasInvocationOperator
 		{
-			template < typename V > static char test( decltype( &V::operator() ) );
-			template < typename V > static long test( ... );
-			static constexpr bool Value = sizeof( test< U >( 0 ) ) == sizeof( char );
+			template < typename U > static char test( decltype( &U::operator() ) );
+			template < typename U > static long test( ... );
+			static constexpr bool Value = sizeof( test< T >( 0 ) ) == sizeof( char );
 		};
 
-		template < typename U, bool Enable = HasInvocationOperator< U >::Value >
-		struct GetInvocationSignature
+		template < typename T >
+		struct LambdaInfoImpl
 		{
-			using Type = void;
+			using Signature = decltype( &remove_reference< T >::type::operator() );
+			using Return    = typename InfoImpl< Signature >::Return;
+			using Arguments = typename InfoImpl< Signature >::Arguments;
+			static constexpr bool IsStatic   = false;
+			static constexpr bool IsLambda   = true;
+			static constexpr bool IsMember   = false;
+			static constexpr bool IsFunction = true;
 		};
-
-		template < typename U >
-		struct GetInvocationSignature< U, true >
-		{
-			using Type = decltype( &remove_reference< T >::type::operator() );
-		};
-
-		using Signature = typename GetInvocationSignature< T >::Type;
-		using Return = typename FunctionInfo< Signature >::Return;
-		using Arguments = typename FunctionInfo< Signature >::Arguments;
-		static constexpr bool IsStatic = false;
-		static constexpr bool IsLambda = HasInvocationOperator< T >::Value;
-		static constexpr bool IsMember = false;
-		static constexpr bool IsFunction = IsStatic || IsLambda || IsMember;
-	};
-
-	template <>
-	struct FunctionInfo< void >
-	{
-		using Signature = void;
-		using Return = void;
-		using Arguments = void;
-		static constexpr bool IsStatic = false;
-		static constexpr bool IsLambda = false;
-		static constexpr bool IsMember = false;
-		static constexpr bool IsFunction = false;
-	};
+	}
 
 	template < typename T >
-	using GetSignature = typename FunctionInfo< T >::Signature;
+	struct Info : public conditional_t< HasInvocationOperator< T >::Value, LambdaInfoImpl< T >, InfoImpl< T > >
+	{ };
+
+	template < typename T, typename O >
+	using EnableIfFunction = enable_if_t< Info< T >::IsFunction, O >;
+
+	template < typename T, typename O >
+	using DisableIfFunction = enable_if_t< !Info< T >::IsFunction, O >;
+
+	template < typename T, typename O >
+	using EnableIfStatic = enable_if_t< Info< T >::IsStatic, O >;
+
+	template < typename T, typename O >
+	using DisableIfStatic = enable_if_t< !Info< T >::IsStatic, O >;
+
+	template < typename T, typename O >
+	using EnableIfMember = enable_if_t< Info< T >::IsMember, O >;
+
+	template < typename T, typename O >
+	using DisableIfMember = enable_if_t< !Info< T >::IsMember, O >;
+
+	template < typename T, typename O >
+	using EnableIfLambda = enable_if_t< Info< T >::IsLambda, O >;
+
+	template < typename T, typename O >
+	using DisableIfLambda = enable_if_t< !Info< T >::IsLambda, O >;
+
+	template < typename T, size_t INDEX >
+	using GetArgument = tuple_element_t< INDEX, typename Info< T >::Arguments >;
 
 	template < typename T >
-	using GetReturn = typename FunctionInfo< T >::Return;
+	using GetArguments = typename Info< T >::Arguments;
 
 	template < typename T >
-	using GetArguments = typename FunctionInfo< T >::Arguments;
+	using GetReturn = typename Info< T >::Return;
 
 	template < typename T >
-	using EnableIfLambdaF = enable_if_t< FunctionInfo< T >::IsLambda, void >;
+	using GetSignature = typename Info< T >::Signature;
 
 	template < typename T >
-	using DisableIfLambdaF = enable_if_t< !FunctionInfo< T >::IsLambda, void >;
+	static constexpr size_t GetArgumentCount = tuple_size_v< Info< T >::Arguments >;
 
 	template < typename T >
-	using EnableIfStaticF = enable_if_t< FunctionInfo< T >::IsStatic, void >;
+	static constexpr bool IsFunction = Info< T >::IsFunction;
 
 	template < typename T >
-	using DisableIfStaticF = enable_if_t< !FunctionInfo< T >::IsStatic, void >;
+	static constexpr bool IsStatic = Info< T >::IsStatic;
 
 	template < typename T >
-	using EnableIfMemberF = enable_if_t< FunctionInfo< T >::IsMember, void >;
+	static constexpr bool IsMember = Info< T >::IsMember;
 
 	template < typename T >
-	using DisableIfMemberF = enable_if_t< !FunctionInfo< T >::IsMember, void >;
-
-	template < typename T >
-	using EnableIfFunction = enable_if_t< FunctionInfo< T >::IsFunction, void >;
-
-	template < typename T >
-	using DisableIfFunction = enable_if_t< !FunctionInfo< T >::IsFunction, void >;
-}
+	static constexpr bool IsLambda = Info< T >::IsLambda;
+} // namespace FunctionTraits
